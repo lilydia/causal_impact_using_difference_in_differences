@@ -1,12 +1,11 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
-author: 
-  - First author
-  - Another author
-thanks: "Code and data are available at: LINK."
+title: "Using Difference-in-Differences to Estimate Causal Impacts of Foreign Investment Policies in Canada"
+subtitle: "A Causal Story on the Investment Canada Act (ICA)"
+author: "Youjing Li"
+thanks: "Code and data are available at: https://github.com/lilydia/causal_impact_using_difference_in_differences."
 date: "`r format(Sys.time(), '%d %B %Y')`"
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+abstract: "Historically, many policies and legislations were passed in Canada to control foreign business activities. A difference-in-differences (DD) research experimentation is designed to study variations in policies over time and to estimate causal impacts of relaxing foreign investment policies. Specifically, this paper examines the causal effect of Investment Canada Act (ICA), a policy introduced in 1985 that relaxes foreign investment restrictions. Throughout the paper, we recommend DD best practices, interpret statistical results, discuss experimentation validity and bias, and lastly, recognizes the economic benefits of foreign investments in Canada."
+keywords: "Foreign Direct Investment, Investment Canada Act, Economic Impact, Difference in Differences, Casual Inference"
 output:
   bookdown::pdf_document2
 toc: FALSE
@@ -22,9 +21,11 @@ library(palmerpenguins)
 
 # Introduction
 
-You can and should cross-reference sections and sub-sections. For instance, Section \@ref(data). R Markdown automatically makes the sections lower case and adds a dash to spaces to generate labels, for instance, Section \@ref(first-discussion-point). 
+Historically, Canada imported the capital required for economic development through foreign direct investment, foreign ownership, and foreign control of different industries (Statistics Canada, 2017). One major milestone in shaping Canada’s investment policy was the introduction of the Investment Canada Act (ICA). Baldwin and Gellatly (2005) studied the importance of foreign ownership in Canada and observed declines in foreign-controlled market share from 1973 to 1985 when the Foreign Investment Review Act (FIRA) provided more restrictive regulations, and then subsequent increases from 1986 to 1999 when more liberal policies are enforced under the Investment Canada Act (ICA).
 
+Past studies on the importance of foreign investments face challenges of finding consistent data over time (Statistics Canada, 2017). Section \@ref(data) discuss available data sources form Organization for Economic Co-operation and Development (OECD) and explores the OECD investment database for applications of difference-in-difference causal inferences. Canada is compared against other countries in two distinct time periods—before and after 1985. To study the effect of ICA, Canada is chosen as the treated group whereas countries that have similar investment metrics pre-1985 (before ICA was introduced) are selected as control groups.  
 
+Section \@ref(model) discusses how difference-in-differences (DD) methods could be applied to make casual inferences on the topic of foreign investments. All results are presented in Section \@ref(results) and are interpreted in subsequent sections. Specifically, Section \@ref(recommendation) provides guidance to policy makers who are looking to build a healthy economy; Section \@ref(validity) discusses validity of DD designs. Section \@ref(bias) proposes biases such as secular trends and uncontrollable conditions. Lastly, any potential challenges are discussed, and future strategies are also proposed to design DD experiments for evaluating economic impacts. 
 
 # Data
 
@@ -77,13 +78,12 @@ We can use maths by including latex between dollar signs, for instance $\theta$.
 
 # Discussion
 
-## First discussion point
-
+## Recommendation
 If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
 
-## Second discussion point
+## Validity
 
-## Third discussion point
+## Bias
 
 ## Weaknesses and next steps
 
