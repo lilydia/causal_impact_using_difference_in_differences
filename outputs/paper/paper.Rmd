@@ -134,7 +134,7 @@ hh <- hh %>%
          treat = ifelse(LOCATION == "CAN", 1, 0),
          LOCATION = as.factor(LOCATION))
 
-# Calculate first difference for household investment
+# Calculate difference-in-differences
 did <- lm(data = hh, Value ~ treat*post)
 stargazer(did, type="text")
 ```
