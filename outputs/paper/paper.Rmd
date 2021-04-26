@@ -1,10 +1,10 @@
 ---
-title: "Using Difference-in-Differences to Estimate Causal Impacts of Foreign Investment Policies in Canada"
-subtitle: "A Causal Story on the Investment Canada Act (ICA)"
+title: "Using Difference-in-Differences to Estimate Casual Impacts From the Passage of the Investment Canada Act (ICA) in 1985"
+subtitle: "Increase in Household Investments Derived From Gross Fixed Capital Formation (GFCF)"
 author: "Youjing Li"
 thanks: "Code and data are available at: https://github.com/lilydia/causal_impact_using_difference_in_differences."
 date: "`r format(Sys.time(), '%d %B %Y')`"
-abstract: "Historically, many policies and legislations were passed in Canada to control foreign business activities. A difference-in-differences (DD) research experimentation is designed to study variations in policies over time and to estimate causal impacts of relaxing foreign investment policies. Specifically, this paper examines the causal effect of Investment Canada Act (ICA), a policy introduced in 1985 that relaxes foreign investment restrictions. Throughout the paper, we recommend DD best practices, interpret statistical results, discuss experimentation validity and bias, and lastly, recognizes the economic benefits of foreign investments in Canada."
+abstract: "Historically, many policies and legislations were passed in Canada to control foreign business activities. A difference-in-differences (DD) research experimentation is designed to study variations in policies over time and to estimate causal impacts of relaxing foreign investment policies. Specifically, this paper examines the causal effect of the Investment Canada Act (ICA), a policy introduced in 1985 that relaxes foreign investment restrictions. By applying DD experimentation on GFCF data, a significant increase in household investments is estimated to be the result of ICA in Canada. Throughout the paper, we recommend DD best practices, interpret statistical results, discuss experimentation validity and bias, and lastly, recognizes the economic benefits of foreign investments in Canada."
 keywords: "Foreign Direct Investment, Investment Canada Act, Economic Impact, Difference in Differences, Casual Inference"
 output:
   bookdown::pdf_document2
@@ -15,89 +15,276 @@ bibliography: references.bib
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+# Load libraries
 library(tidyverse)
-library(palmerpenguins)
+library(ggplot2) #plot
+library(stargazer) #table
+
+# Load data
+reduced_data <- readr::read_csv("../../inputs/data/cleaned_data.csv")
+
+# divide the data into post & pre and treated & control by different categories
+isolated_loc <- subset(reduced_data, (LOCATION == "CAN" | LOCATION == "USA"))
+filtered_time <- subset(isolated_loc, TIME>"1980"）
+hh <- subset(filtered_time, (SUBJECT == "HH")) #household investment
+corp <- subset(filtered_time, (SUBJECT == "CORP")) #corporate investment
+gg <- subset(filtered_time, (SUBJECT == "GG")) #general government investment
+
+# divide into post & pre, treated & control
+hh <- hh %>%
+  mutate(post = ifelse(TIME > 1985, 1, 0),
+         treat = ifelse(LOCATION == "CAN", 1, 0),
+         LOCATION = as.factor(LOCATION))
+
+corp <- corp %>%
+  mutate(post = ifelse(TIME > 1985, 1, 0),
+         treat = ifelse(LOCATION == "CAN", 1, 0),
+         LOCATION = as.factor(LOCATION))
+
+gg <- gg %>%
+  mutate(post = ifelse(TIME > 1985, 1, 0),
+         treat = ifelse(LOCATION == "CAN", 1, 0),
+         LOCATION = as.factor(LOCATION))
+
 ```
 
 # Introduction
 
-Historically, Canada imported the capital required for economic development through foreign direct investment, foreign ownership, and foreign control of different industries (Statistics Canada, 2017). One major milestone in shaping Canada’s investment policy was the introduction of the Investment Canada Act (ICA). Baldwin and Gellatly (2005) studied the importance of foreign ownership in Canada and observed declines in foreign-controlled market share from 1973 to 1985 when the Foreign Investment Review Act (FIRA) provided more restrictive regulations, and then subsequent increases from 1986 to 1999 when more liberal policies are enforced under the Investment Canada Act (ICA).
+Historically, Canada imported the capital required for economic development through foreign direct investment, foreign ownership, and foreign control of different industries (Statistics Canada, 2017). One major milestone in shaping Canada’s investment policy was the introduction of the Investment Canada Act (ICA). Baldwin and Gellatly (2005) studied the importance of foreign ownership in Canada and observed declines in foreign-controlled market share from 1973 to 1985 when the Foreign Investment Review Act (FIRA) provided more restrictive regulations, and then subsequent increases from 1986 to 1999 when more liberal policies were enforced under the Investment Canada Act (ICA).
 
-Past studies on the importance of foreign investments face challenges of finding consistent data over time (Statistics Canada, 2017). Section \@ref(data) discuss available data sources form Organization for Economic Co-operation and Development (OECD) and explores the OECD investment database for applications of difference-in-difference causal inferences. Canada is compared against other countries in two distinct time periods—before and after 1985. To study the effect of ICA, Canada is chosen as the treated group whereas countries that have similar investment metrics pre-1985 (before ICA was introduced) are selected as control groups.  
+Past studies on the importance of foreign investments face challenges of finding consistent data over time (Statistics Canada, 2017). Section \@ref(data) discuss available data sources form Organization for Economic Co-operation and Development (OECD) and explores the OECD investment database for applications of difference-in-difference causal inferences. Canada is compared against other countries in two distinct time periods—before and after 1985. To study the effect of ICA in 1985, Canada is chosen as the treated group whereas countries that have similar investment metrics pre-1985 are selected as control groups.
+
+By applying DD best practices, GFCF data with non-parallel trends between the treated and control groups are filtered out. In Section \@ref(results), parallel trends are only observed in household investments. Therefore, by applying DD analysis on household investments, a 2% rise in household investments is estimated as a result of ICA. 
 
 Section \@ref(model) discusses how difference-in-differences (DD) methods could be applied to make casual inferences on the topic of foreign investments. All results are presented in Section \@ref(results) and are interpreted in subsequent sections. Specifically, Section \@ref(recommendation) provides guidance to policy makers who are looking to build a healthy economy; Section \@ref(validity) discusses validity of DD designs. Section \@ref(bias) proposes biases such as secular trends and uncontrollable conditions. Lastly, any potential challenges are discussed, and future strategies are also proposed to design DD experiments for evaluating economic impacts. 
 
 # Data
 
-Our data is of penguins (Figure \@ref(fig:bills)).
+This paper uses R [@citeR] and packages such as "Tidyverse" [@citeTidy], "ggplot2" [@citeGg], and "Stargazer" [@citeStargazer] to analyze, visualize, and to perform statistical regressions on the data. Additional, other packages like "knitr" [@citeKnitr] and “tinytex” [@citeTiny] are used to compile and create this PDF file.
 
-```{r bills, fig.cap="Bills of penguins", echo = FALSE}
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = FALSE) +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
+Figure \@ref(fig:overview) below shows an overview of data on GFCF, also known as "investment", from the years 1980 to 1988.
+
+```{r overview, fig.cap="Changes in % GFCF over time -- all recorded data", echo = FALSE, fig.width=8, fig.height=8}
+
+ggplot(reduced_data, aes(x = TIME, y = Value)) + 
+  geom_line(aes(color = LOCATION), size = 1) +
+  facet_wrap(~ SUBJECT, ncol = 1) +
+  theme_minimal()
+
 ```
 
-Talk more about it.
+We use GFCF data from the Organisation for Economic Co-operation and Development (OECD) Specifically, we examine investment by sectors such as household, corporate, and general government [@citeOECD]. For government, this typically means investment in R&D, transport infrastructure, military weapons systems, or public buildings like hospitals and schools. On the other hand, household investments include dwellings owned and occupied by the household, automobiles owned and used by the household's members, furniture, home appliances, etc [@citeHh]. Lastly, corporate investments refer to investments made by companies rather than by governments or individual people.
 
-Also bills and their average (Figure \@ref(fig:billssssss)). (Notice how you can change the height and width so they don't take the whole page?)
+Description of key data features below:
 
-```{r billssssss, fig.cap="More bills of penguins", echo = FALSE, fig.width=8, fig.height=4}
+* `LOCATION`: Countries
+* `TIME`: Years
+* `SUBJECT`: "Corp", "GG", and "HH" to represent corporate, general government, and household
+* `Value`: Percentage contributions toward domestic GCDP
 
-# This needs to be about the random data tha tI sasmpled?
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = FALSE) +
+By visualizing available data from Figure \@ref(fig:overview), the United States is selected as the control group for comparison. An overview of the treated and control groups are shown in Figure \@ref(fig:isolated).
+
+```{r isolated, fig.cap="Changes in % GFCF over time -- treated & control groups", echo = FALSE, fig.width=8, fig.height=8}
+
+ggplot(isolated_loc, aes(x = TIME, y = Value)) + 
+  geom_line(aes(color = LOCATION), size = 1) +
+  geom_vline(xintercept=1985, color = "steelblue", linetype = "dashed") +
+  facet_wrap(~ SUBJECT, ncol = 1) +
   theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
+  scale_color_manual(labels = c("CAN (treated)", "USA (control)"), values = c("#F8BC6D", "#F86DBC")) +
+  annotate("text", x = 1983, y = 9, label = "Pre-period", size  =5, color = "steelblue") +
+  annotate("text", x = 1987, y = 9, label = "Post-period", size  =5, color = "steelblue") 
+
 ```
 
-Talk way more about it. 
-
-
+At a glance, parallel trends are evident across all sectors in the pre-period, with exception for a few years. Specifically, trends in household investments seem to primarily overlap for Canada and the United States before 1985. Therefore, detailed analysis is carried out in Section \@ref(results) to estimate the effect of ICA after 1985 using the DD model. 
 
 # Model
 
+## Description
+
+The DD experiment compares changes in investment-related outcomes before and after ICA takes effect in Canada, to changes in the same outcomes in the United States, which is not affected by the policy. Since DD accounts for changes due to factors other than the intervention itself, it is well-suited to offer an intuitive interpretation for effects due to policy changes [@citeDd]. However, the model cannot be used under the following situations:
+
+* if intervention allocation is determined by baseline outcomes
+* if treated and control groups have different trends in outcomes
+* if composition of groups in pre- and post- periods are not stable
+
+Since the validity of DD heavily relies on the assumption about the comparability of treated and control groups, details with respect to considerations for the aforementioned factors are further discussed in Section \@ref(validity). The appropriateness and applicability of the model is also verified in Section \@ref(results) through visual inspections and discussed in Section \@ref(validity) using regression statistics.
+
+## Regression 
+
+DD is usually represented as a regression model to show interactions between time and treatment group dummy variables and can be represented using Equation \@ref(eq:did) [@citeDd].
+
 \begin{equation}
-Pr(\theta | y) = \frac{Pr(y | \theta) Pr(\theta)}{Pr(y)}  (\#eq:bayes)
+Y_{i,t} = \beta_{0} + \beta_{1}(Time) + \beta_{2}(Intervention) + \beta_{3}(Time * Intervention) +  \beta_{4}(Covariates) +  \varepsilon (\#eq:did)
 \end{equation}
+where
 
-Equation \@ref(eq:bayes) seems useful, eh?
+* $\beta_{0}$ represents the baseline average
+* $\beta_{1}$ represents the time trend in control group
+* $\beta_{2}$ represents the difference between two groups pre-intervention
+* $\beta_{3}$ represents the difference in changes over time
 
-Here's a dumb example of how to use some references: In paper we run our analysis in `R` [@citeR]. We also use the `tidyverse` which was written by @thereferencecanbewhatever If we were interested in baseball data then @citeLahman could be useful. 
+The goal of this paper is for the final prediction to contain the effect of being treated along with being in the post-period, compared to not being treated and being in the pre-period. Therefore, we need to feed the interaction between treatment and pre-post indicators. The built-in linear regression from R [@citeR] is used. Inside the regression, we use pre-post and treated indicators as independent variables and GFCF percentages as dependent variables:
 
-We can use maths by including latex between dollar signs, for instance $\theta$.
+```{r message=FALSE, warning=FALSE, results= FALSE}
+# divide into post & pre, treated & control
+hh <- hh %>%
+  mutate(post = ifelse(TIME > 1985, 1, 0),
+         treat = ifelse(LOCATION == "CAN", 1, 0),
+         LOCATION = as.factor(LOCATION))
 
+# Calculate first difference for household investment
+did <- lm(data = hh, Value ~ treat*post)
+stargazer(did, type="text")
+```
+
+The example above shows how variables like 'TIME' and 'LOCATION' (see Section \@ref(data)) are transformed into indicators using one-hot encoding. These treat and post indicators are then fed into the regression model as independent variables in the form of $'treat*post'$. The use of $'*'$ inside the regression automatically includes the separate aspects as well as their interactions. The dependent variable 'Value' represents GFCF percentages and is also described in Section \@ref(data). The final regression result shows us $\beta_{3}$, which represents the difference in changes over time.
 
 # Results
 
-# Discussion
+Figures \@ref(fig:corp), and \@ref(fig:gg), and \@ref(fig:hh) zoom in on investment data from sectors like businesses,the government, and households, respectively. From these figures below, parallel trends do not seem to hold in corporate and government sectors. In the pre-period, both corporate and government investments show declining differences over time--the gap between trends in Canada and the United States becomes smaller from 1981 to 1985. Therefore, DD analysis cannot be applied to these two sectors.
 
-## Recommendation
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
+```{r corp, fig.cap="GFCF contributions from corporate investments", echo = FALSE, fig.width=8, fig.height=3.5}
 
-## Validity
+ggplot(corp, aes(x=TIME, y=Value, group = LOCATION)) +
+  geom_line(aes(color = LOCATION)) + 
+  theme_classic() +
+  geom_vline(xintercept=1985, color = "steelblue", linetype = "dashed") +
+  labs(title="% GFCF contributions over years -- corporate investment", 
+       y="% GFCF",x="Years", color = "Region") +
+  scale_color_manual(labels = c("CAN (treated)", "USA (control)"), values = c("#F8BC6D", "#F86DBC"))+
+  annotate("text", x = 1983, y = 9, label = "Pre-period", size  =5, color = "steelblue") +
+  annotate("text", x = 1987, y = 9, label = "Post-period", size  =5, color = "steelblue") 
 
-## Bias
+```
 
-## Weaknesses and next steps
+```{r gg, fig.cap="GFCF contributions from general government investments", echo = FALSE, fig.width=8, fig.height=3.5}
 
-Weaknesses and next steps should also be included.
+ggplot(gg, aes(x=TIME, y=Value, group = LOCATION)) +
+  geom_line(aes(color = LOCATION)) + 
+  theme_classic() +
+  geom_vline(xintercept=1985, color = "steelblue", linetype = "dashed") +
+  labs(title="% GFCF contributions over years -- general government investment", 
+       y="% GFCF",x="Years", color = "Region") +
+  scale_color_manual(labels = c("CAN (treated)", "USA (control)"), values = c("#F8BC6D", "#F86DBC"))+
+  annotate("text", x = 1983, y = 9, label = "Pre-period", size  =5, color = "steelblue") +
+  annotate("text", x = 1987, y = 9, label = "Post-period", size  =5, color = "steelblue") 
+
+
+```
 
 \newpage
 
-\appendix
+```{r hh, fig.cap="GFCF contributions from household investments", echo = FALSE, fig.width=8, fig.height=4}
 
-# Appendix {-}
+ggplot(hh, aes(x=TIME, y=Value, group = LOCATION)) +
+  geom_line(aes(color = LOCATION)) + 
+  theme_classic() +
+  geom_vline(xintercept=1985, color = "steelblue", linetype = "dashed") +
+  labs(title="% GFCF contributions over years -- household investment", 
+       y="% GFCF",x="Years", color = "Region") +
+  scale_color_manual(labels = c("CAN (treated)", "USA (control)"), values = c("#F8BC6D", "#F86DBC"))+
+  annotate("text", x = 1983, y = 9, label = "Pre-period", size  =5, color = "steelblue") +
+  annotate("text", x = 1987, y = 9, label = "Post-period", size  =5, color = "steelblue") 
 
 
-# Additional details
+```
 
+As shown in Figure \@ref(fig:hh), GFCF percentage trends overlap for the two groups. Therefore, DD analysis follows:
+
+```{r message=FALSE, warning=FALSE, echo=TRUE, results='hold'}
+# Calculate difference-in-differences for household investment (CAN & USA)
+did <- lm(data = hh, Value ~ treat*post)
+stargazer(did, type="text")
+```
+
+\newpage
+
+Among the three sectors, household investments have the most consistent trends in the pre-period. To further support the result that household investments increase in Canada after 1985, an alternative control group is introduced. Figure \@ref(fig:alt) shows the feasibility of having Australia as an alternative control group. Parallel trends are evident throughout the years 1981 to 1985.
+
+```{r alt, fig.cap="Additional verifications of household investments", echo = FALSE, fig.width=8, fig.height=4}
+# divide the data into post & pre and treated & control by different categories
+isolated_loc_alt <- subset(reduced_data, (LOCATION == "CAN" | LOCATION == "AUS"))
+isolated_loc_alt <- subset(isolated_loc_alt, TIME > "1980")
+hh_alt <- subset(isolated_loc_alt, (SUBJECT == "HH")) #household investment
+
+# divide into post & pre, treated & control
+hh_alt <- hh_alt %>%
+  mutate(post = ifelse(TIME > 1985, 1, 0),
+         treat = ifelse(LOCATION == "CAN", 1, 0),
+         LOCATION = as.factor(LOCATION))
+
+ggplot(hh_alt, aes(x=TIME, y=Value, group = LOCATION)) +
+  geom_line(aes(color = LOCATION)) + 
+  theme_classic() +
+  geom_vline(xintercept=1985, color = "steelblue", linetype = "dashed") +
+  labs(title="% GFCF contributions over years -- household investment", 
+       y="% GFCF",x="Years", color = "Region") +
+  scale_color_manual(labels = c("CAN (treated)", "AUS (alternative control)"), values = c("#F8BC6D", "#F8766D"))+
+  annotate("text", x = 1983, y = 9, label = "Pre-period", size  =5, color = "steelblue") +
+  annotate("text", x = 1987, y = 9, label = "Post-period", size  =5, color = "steelblue") 
+
+
+```
+
+With the establishment of parallel trends in the pre-period, DD analysis is conducted:
+
+```{r message=FALSE, warning=FALSE, echo=TRUE, results='hold'}
+# Calculate difference-in-differences for household investment (CAN & AUS)
+did <- lm(data = hh_alt, Value ~ treat*post)
+stargazer(did, type="text")
+```
+
+# Discussion
+
+Through careful analysis of the OECD data (see Section \@ref(data)), investment data from Canada are compared against data from the United States in time periods before and after 1985 to estimate the effect of ICA. The applicability of the DD model is examined (see Section \@ref(model)) and is applied to suggest that the percentage of GFCF from household investments increased by approximately 2%  in Canada because of the ICA intervention that happened (see Section \@ref(results)). Other sectors such as corporate and general government investments are also investigated but non-parallel trends are observed, meaning that results from DD are not valid. The topic of validity is examined further in Section \@ref(validity).
+
+## Recommendation
+
+The implications of this study are that ICA affected capital formation in Canada and increased investment activities, especially in households. This paper recognizes this positive change brought forth by the introduction of ICA. Despite the positive change, it is not recommended to interpret the results from this paper as arguments to promote foreign investments in Canada. Instead, further research is recommended to identify patterns in both outward and inward FDI and to identify causal relationships between FDI and capital formations for all sectors of GFCF.
+
+## Validity
+
+To account for ‘threats to validity’, many precautions are taken throughout the DD experiment to meet the DD model assumptions stated in Section \@ref(model) and to avoid any threats such as non-parallel trends, composition differences, long-term effects, and functional form dependence. Regression statistics from Section \@ref(results) is also interpreted for fitting of the model.
+
+### Regression Statistics
+
+By comparing Canada and the United States, a nearly 2% GFCF increase in Canadian household investments is estimated (see Figure \@ref(fig:hh)). Similar results are found when we used an alternative control group, Australia (see Figure \@ref(fig:alt)). The DD regression model results prove that the United States is a better control group compared to Australia. Both the R-square and adjusted R-squared indicators are higher by at least 7% when using the United States as the control group compared to Australia. The final R-squared of 65.3% and adjusted R-squared of 56.6% show that at least half of the observed variation can be explained by the model's inputs. In other words, by using a DD regression model, more than half of the variance in the dependent variable (eg. GFCF percentages) can be explained by the independent variables (the pre-post and treatment indicators).
+
+
+### Non-parallel Trends
+
+For DD results to be valid, parallel trends are assumed, meaning that the difference between treated and controlled groups would remain constant over time if the treatment were absent. To make sure parallel trends exist, visual inspections are conducted to make sure trends are consistent both in terms of magnitudes and directions. As shown in Figure \@ref(fig:overview), by observing available data from all countries, the United States is found to be the most similar to Canada across all GFCF sectors and is depicted in  Figure \@ref(fig:isolated). 
+
+To make the argument for parallel trends stronger, the most geographical adjacent country, the United States, is chosen. To further prove parallel trends and to establish validity, this paper also zooms in on all visualizations (see Figures \@ref(fig:gg), \@ref(fig:corp), and \@ref(fig:hh)). DD analysis is only performed on the sector that had the least difference fluctuations before 1985. As shown in Figure \@ref(fig:hh), the GFCF sector of household investments had consistent trends for both control and treated groups before 1985 and was therefore selected as the evaluation metrics. 
+To further confirm the validity of results, an alternative control group is also used to confirm that the introduction of ICA brought increases to household investments in Canada. As shown in Figure \@ref(fig:hh_alt), Australia and Canada also showed parallelism pre-1985. Through DD analysis, a positive increase is also found when using Australia as a control group.
+
+### Compositional differences
+
+As explained in Section \@ref(data), the GFCF measurements are provided by each country on an annual basis. Without data granularities such as smaller divisions of time frames or regional differences within the same country, it was hard to account for policies changes in different countries in varying time periods. More specifically, the Canada-United States Free Trade Agreement (CUSTFTA) was established in 1987, which was shortly after the introduction of ICA in 1985. This is another reason why the United States is chosen as the control group—to account for a longer-term effect that is inclusive of CUSTFTA in 1987.
+
+### Long-term effects
+
+As mentioned earlier, the trade-off between reliability and long-term effects is considered while choosing pre- and post- periods. For pre-period, the maximum length possible is four years since the earliest OECD record from Canada is from 1981. To make sure parallel trends are evident and not just happening by chance, data from 1981 to 1985 are selected as pre-period. Since the United States is chosen as the control group, policies surrounding foreign investments in the United States are also tracked to ensure any confounding effects are eliminated. The Omnibus Trade and Competitiveness Act of 1988, for example, blocks any acquisitions, mergers, or takeovers that threatens the nation security. For this reason, the post-period ends in 1988 to prevent other factors or policies from influencing the result.
+
+### Functional form dependence
+
+Similar outcomes from Section \@ref(results) suggest that functional form is not problematic. However, alternative approaches and models should be tested to verify consistent results. Recommendations and next steps will be discussed in subsequent sections.
+
+## Bias
+
+Selection bias may also be present due to both observed and unobserved characteristics from both countries prior to the treatment. To neutralize the selection bias, pre-existing differences between groups should be accounted for. However, outside of foreign investment policies, many other sectors differ in Canada and the United States and these changes would be hard to account for. Therefore, as the next steps, recommendations are given in Section 5.4 to expand the scope of the analysis and to consider trends from all aspects.
+
+## Weaknesses and next steps
+
+This paper raises policy questions regarding the ICA’s probable impact on one aspect of the Canadian economy, gross fixed capital formation (GFCF). However, due to restricted data sources, data used in this paper are measured in percentage of GFCF, which makes it hard to conclude on actual increases or declines—percentages in one sector might drastically change due to declines in other sectors. 
+
+The time periods that the data were collected also pose potential concerns. In the 1980’s when data collections methods are standardized, it is hard to ensure the accuracies of these metrics. Although two neighbouring countries are selected as treated and control groups, there is no guarantee that geographically adjacent countries implement same metrics collection systems.
+
+An extension to this study includes inclusions of more perspectives. To provide a comprehensive assessment of impacts due to changes in foreign investment policies, many other areas should also be investigated such as employment, productivity, international trade, and overall welfare. 
+
+Furthermore, other approaches for inferring causal impacts should also be attempted to ensure accuracies and to allow comparisons. For example, the Causal Impact methodology developed by Google and the Synthetic Control technique are alternatives to DD experiments. Any biases can also be detected upon comparisons with other alternative estimators.
 
 \newpage
 
